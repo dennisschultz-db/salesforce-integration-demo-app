@@ -13,7 +13,7 @@ config.sfdc = {
 
     // URL called by Force.com after authorization and used to extract an authorization code.
     // This should point to your app and match the value configured in your App in SFDC setup)
-    callbackUrl : 'https://dws-platform-events.herokuapp.com/auth/callback',
+    callbackUrl : 'https://dws-nto-manufacturing.herokuapp.com/auth/callback',
 
     // Set of secret keys that allow your app to authenticate with Force.com
     // These values are retrieved from your App configuration in SFDC setup.
