@@ -35,14 +35,6 @@ let server = require('http').Server(app);
 const socketIO = require('socket.io');
 const io = socketIO(server);
 
-let faye = require('faye');
-
-let bayeux = new faye.NodeAdapter({mount: '/faye', timeout: 45});
-bayeux.attach(server);
-bayeux.on('disconnect', function(clientId) {
-    console.log('Bayeux server disconnect');
-});
-
 
 // Enable server-side sessions
 app.use(session({
@@ -282,6 +274,15 @@ app.get('/approvals/:mixId', function (request, response) {
 			return;
 		}
 	});
+});
+
+// Subscribe to Salesforce Platform Events using
+// Faye and Bayeux
+let faye = require('faye');
+let bayeux = new faye.NodeAdapter({mount: '/faye', timeout: 45});
+bayeux.attach(server);
+bayeux.on('disconnect', function(clientId) {
+    console.log('Bayeux server disconnect');
 });
 
 // Subscribe to Platform Events
