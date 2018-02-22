@@ -111,7 +111,9 @@ app.get('/auth/callback', function (request, response) {
 			session.sfdcAuth = payload;
 			console.log('authenticate sfdcAuth ' + JSON.stringify(payload));
 
-			subscribeToPlatformEvents(payload);
+			console.log("===================");
+			console.log("subscribeToPlatformEvents from authenticate");
+				subscribeToPlatformEvents(payload);
 
 			// Redirect to app main page
 			return response.redirect('/index.html');
@@ -171,6 +173,8 @@ app.get('/auth/whoami', function (request, response) {
 		}
 
 		// If existing session, subscribe to events
+		console.log("===================");
+		console.log("subscribeToPlatformEvents from getLoggedUser");
 		subscribeToPlatformEvents(curSession.sfdcAuth);
 
 		// Return user data
