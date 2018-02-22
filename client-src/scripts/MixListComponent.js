@@ -35,12 +35,12 @@ var MixList = module.exports = React.createClass({
         // Get Mixes
         console.log('MixListComponent:componentDidMount');
 
-        socket.on('mix_submitted', function(newMix) {
+        socket.on('mix_submitted-' + this.props.id, function(newMix) {
             console.log('New mix socket event occured for ' + JSON.stringify(newMix));
             this.onSubmitMix(newMix);
         }.bind(this));
 
-        socket.on('mix_unsubmitted', function(mix) {
+        socket.on('mix_unsubmitted-' + this.props.id, function(mix) {
             console.log('Unsubmit mix socket event occured for ' + JSON.stringify(mix.mixId));
             this.deleteMix(mix.mixId);
         }.bind(this));

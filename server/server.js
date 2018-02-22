@@ -301,20 +301,20 @@ let subscribeToPlatformEvents = (auth) => {
 		console.log("***************");
 		console.log("Server received Platform Event Mix_Submitted__e");
 		console.log("  message " + JSON.stringify(message));
-        io.of('/').emit('mix_submitted', {
+        io.of('/').emit('mix_submitted-' + auth.id, {
             mixId: message.payload.Mix_Id__c,
             mixName: message.payload.Mix_Name__c,
 			account: message.payload.Account__c
-        });
+        }.bind(this));
     });
     client.subscribe('/event/Mix_Unsubmitted__e', function(message) {
         // Send message to all connected Socket.io clients
 		console.log("***************");
 		console.log("Server received Platform Event Mix_Unsubmitted__e");
 		console.log("  message " + JSON.stringify(message));
-        io.of('/').emit('mix_unsubmitted', {
+        io.of('/').emit('mix_unsubmitted-' + auth.id, {
             mixId: message.payload.Mix_Id__c,
-        });
+        }.bind(this));
     });
 };
 
