@@ -109,7 +109,7 @@ app.get('/auth/callback', function (request, response) {
 			// Store oauth session data in server (never expose it directly to client)
 			var session = request.session;
 			session.sfdcAuth = payload;
-			console.log('sfdcAuth ' + JSON.stringify(payload));
+			console.log('authenticate sfdcAuth ' + JSON.stringify(payload));
 
 			subscribeToPlatformEvents(payload);
 
@@ -185,6 +185,7 @@ app.get('/auth/whoami', function (request, response) {
  */
 app.get('/mixes', function (request, response) {
 	var curSession = getSession(request, response, true);
+	console.log('/mixes sfdcAuth ' + JSON.stringify(curSession.sfdcAuth));
 	if (curSession == null)
 		return;
 
@@ -219,6 +220,7 @@ app.get('/mixes', function (request, response) {
  */
 app.get('/mixes/:mixId', function (request, response) {
 	var curSession = getSession(request, response, true);
+	console.log('/mixes/:mixId sfdcAuth ' + JSON.stringify(curSession.sfdcAuth));
 	if (curSession == null)
 		return;
 
@@ -260,6 +262,7 @@ app.get('/mixes/:mixId', function (request, response) {
  */
 app.get('/approvals/:mixId', function (request, response) {
 	var curSession = getSession(request, response, true);
+	console.log('/approvals/:mixId sfdcAuth ' + JSON.stringify(curSession.sfdcAuth));
 	if (curSession == null)
 		return;
 
@@ -286,6 +289,7 @@ app.get('/approvals/:mixId', function (request, response) {
 
 // Subscribe to Platform Events
 let subscribeToPlatformEvents = (auth) => {
+	console.log('subscribeToPlatformEvents sfdcAuth ' + JSON.stringify(auth));
     var client = new faye.Client(auth.instance_url + '/cometd/40.0/');
     client.setHeader('Authorization', 'OAuth ' + auth.access_token);
     client.subscribe('/event/Mix_Submitted__e', function(message) {
