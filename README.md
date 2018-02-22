@@ -1,12 +1,12 @@
-# Bear Watch
+# Platform Events (aka Northern Trail Outfitters Manufacturing)
 
 ## About
-Heroku demonstration app for the "Build an Instant Notification App" Trailhead project (an introduction to platform events).
+This app is an adaptation of the Northern Trail Outfitters Manufacturing app by Christophe Coenraets at https://github.com/ccoenraets/northern-trail-manufacturing.  It is the source for the Heroku app companion of https://github.com/dschultz-mo/northern-trail.  My Northern Trail Outfitters app is used as a sample app for a Salesforce Platform Events workshop.  The Manufacturing app runs on Heroku.  It uses OAuth authentication so any number of students can authenticate to it through their Scratch Org and use it to recieve and send Platform Events to the Retail app running in the org.
 
-This application uses the following dependencies (non-exhaustive):
-- [Salesforce Node client](https://github.com/pozil/salesforce-node-client) a Node library for Force.com OAuth 2.0 authentication and data interactions.
-- [Salesforce Lightning Design System](https://www.lightningdesignsystem.com) (SLDS).
+See the lab exercise workbook at https://salesforce.quip.com/RFAsAqBxxbLI to learn more.
 
 ## Credits
 Background image source: https://w-dog.net<br/>
 Bear footprint image source: http://icons8.com
+Original Northern Trail Outfitters Manufacturing app source: https://github.com/ccoenraets/northern-trail-manufacturing
+OAuth architecture and code borrowed heavily from source: https://github.com/pozil/bear-watch
