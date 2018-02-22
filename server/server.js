@@ -101,11 +101,6 @@ app.get('/auth/callback', function (request, response) {
 			// Store oauth session data in server (never expose it directly to client)
 			var session = request.session;
 			session.sfdcAuth = payload;
-			console.log('authenticate sfdcAuth ' + JSON.stringify(payload));
-
-			console.log("===================");
-			console.log("subscribeToPlatformEvents from authenticate");
-				subscribeToPlatformEvents(payload);
 
 			// Redirect to app main page
 			return response.redirect('/index.html');
@@ -167,7 +162,7 @@ app.get('/auth/whoami', function (request, response) {
 		// If existing session, subscribe to events
 		console.log("===================");
 		console.log("subscribeToPlatformEvents from getLoggedUser");
-		subscribeToPlatformEvents(curSession.sfdcAuth);
+		subscribeToPlatformEvents(curSession.sfdcAuth, userData.organization_id);
 
 		// Return user data
 		response.send(userData);
@@ -293,7 +288,7 @@ bayeux.on('disconnect', function(clientId) {
 });
 
 // Subscribe to Platform Events
-let subscribeToPlatformEvents = (auth) => {
+let subscribeToPlatformEvents = (auth, id) => {
 	console.log('subscribeToPlatformEvents sfdcAuth ' + JSON.stringify(auth));
     var client = new faye.Client(auth.instance_url + '/cometd/40.0/');
     client.setHeader('Authorization', 'OAuth ' + auth.access_token);
@@ -302,8 +297,8 @@ let subscribeToPlatformEvents = (auth) => {
 		console.log("***************");
 		console.log("Server received Platform Event Mix_Submitted__e");
 		console.log("  message " + JSON.stringify(message));
-		console.log(' emitting ' + 'mix_submitted-' + auth.id);
-        io.of('/').emit('mix_submitted-' + auth.id, {
+		console.log(' emitting ' + 'mix_submitted-' + id);
+        io.of('/').emit('mix_submitted-' + id, {
             mixId: message.payload.Mix_Id__c,
             mixName: message.payload.Mix_Name__c,
 			account: message.payload.Account__c
@@ -314,8 +309,8 @@ let subscribeToPlatformEvents = (auth) => {
 		console.log("***************");
 		console.log("Server received Platform Event Mix_Unsubmitted__e");
 		console.log("  message " + JSON.stringify(message));
-		console.log(' emitting ' + 'mix_unsubmitted-' + auth.id);
-        io.of('/').emit('mix_unsubmitted-' + auth.id, {
+		console.log(' emitting ' + 'mix_unsubmitted-' + id);
+        io.of('/').emit('mix_unsubmitted-' + id, {
             mixId: message.payload.Mix_Id__c,
         });
     }.bind(this));

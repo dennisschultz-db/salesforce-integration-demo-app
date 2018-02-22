@@ -39,7 +39,7 @@ var App = module.exports = React.createClass({
         { this.state.user == null ?
           <LoginPanel />
           :
-          <MixList id={this.state.user.id} animateIn="true"/>
+          <MixList id={this.state.user.organization_id} animateIn="true"/>
         }
         <div className="credits">Image credits: w-dog.net, icons8.com</div>
       </div>
