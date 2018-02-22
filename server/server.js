@@ -161,8 +161,8 @@ app.get('/auth/whoami', function (request, response) {
 
 		// If existing session, subscribe to events
 		console.log("===================");
-		console.log("subscribeToPlatformEvents from getLoggedUser " + JSON.stringify(userData));
-		subscribeToPlatformEvents(curSession.sfdcAuth, userData.organization_id);
+		console.log("subscribeToPlatformEvents from getLoggedUser " + JSON.stringify(JSON.parse(userData)));
+		subscribeToPlatformEvents(curSession.sfdcAuth, JSON.parse(userData).organization_id);
 
 		// Return user data
 		response.send(userData);
