@@ -21,8 +21,6 @@ var App = module.exports = React.createClass({
       success: function(data) {
         if (typeof data.isNotLogged === 'undefined') {
           this.setState({user: data});
-          console.log('--------- User data on client ---------');
-          console.log(JSON.stringify(data));
         }
       }.bind(this),
       error: function(xhr, status, err) {

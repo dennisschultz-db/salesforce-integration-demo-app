@@ -160,8 +160,6 @@ app.get('/auth/whoami', function (request, response) {
 		}
 
 		// If existing session, subscribe to events
-		console.log("===================");
-		console.log("subscribeToPlatformEvents from getLoggedUser " + JSON.stringify(JSON.parse(userData)));
 		subscribeToPlatformEvents(curSession.sfdcAuth, JSON.parse(userData).organization_id);
 
 		// Return user data
@@ -289,8 +287,7 @@ bayeux.on('disconnect', function(clientId) {
 
 // Subscribe to Platform Events
 let subscribeToPlatformEvents = (auth, id) => {
-	console.log('subscribeToPlatformEvents sfdcAuth ' + JSON.stringify(auth));
-	console.log(' id ' + id);
+	console.log('subscribeToPlatformEvents');
     var client = new faye.Client(auth.instance_url + '/cometd/40.0/');
     client.setHeader('Authorization', 'OAuth ' + auth.access_token);
     client.subscribe('/event/Mix_Submitted__e', function(message) {
