@@ -294,7 +294,9 @@ let subscribeToPlatformEvents = (auth) => {
     client.setHeader('Authorization', 'OAuth ' + auth.access_token);
     client.subscribe('/event/Mix_Submitted__e', function(message) {
 		// Send message to all connected Socket.io clients
+		console.log("***************");
 		console.log("Server received Platform Event Mix_Submitted__e");
+		console.log("  message " + JSON.stringify(message));
         io.of('/').emit('mix_submitted', {
             mixId: message.payload.Mix_Id__c,
             mixName: message.payload.Mix_Name__c,
@@ -303,7 +305,9 @@ let subscribeToPlatformEvents = (auth) => {
     });
     client.subscribe('/event/Mix_Unsubmitted__e', function(message) {
         // Send message to all connected Socket.io clients
+		console.log("***************");
 		console.log("Server received Platform Event Mix_Unsubmitted__e");
+		console.log("  message " + JSON.stringify(message));
         io.of('/').emit('mix_unsubmitted', {
             mixId: message.payload.Mix_Id__c,
         });
