@@ -201,8 +201,10 @@ app.get('/workorders', function (request, response) {
 		subscriptionComplete = true;
 	}
 
-	org.query({ query: "Select Id, WorkOrderNumber, WorkTypeId, Subject, Status, Description from WorkOrder Order By LastModifiedDate DESC Limit 25" })
-    .then(function(results){
+	org.query({ 
+		query: "Select Id, WorkOrderNumber, WorkTypeId, Subject, Status, Description " +
+		       "from WorkOrder Order By LastModifiedDate DESC Limit 25" 
+	}).then(function(results){
 		response.json(results.records);
 		return;
     });
@@ -247,10 +249,9 @@ app.get('/workorder/:woId', function(request, response) {
 // https://www.npmjs.com/package/nforce 
 // *********************************************
 function updateUsingNforce(request, response) {
+	console.log(' ');
 	console.log('Update workorder using Nforce library');
-	console.log('>>>>> ' + JSON.stringify(request.params));
 	var body = request.query;
-	console.log('>>>>> ' + JSON.stringify(body));
 	
 	var wo = nforce.createSObject('WorkOrder');
 	wo.set('Id', request.params.woId);
@@ -260,7 +261,7 @@ function updateUsingNforce(request, response) {
   
 	org.update({ sobject: wo })
 	  .then(function(workorder){
-		  console.log("updated record in SF");
+		  console.log("Updated record in Salesforce using Nforce");
 		// Redirect to app main page
 		return response.end('done');
 	});
@@ -279,11 +280,7 @@ function updateUsingNforce(request, response) {
 // *********************************************
 function updateUsingRequest (req, response) {
 	console.log('Update workorder using Request library');
-	console.log('>>>>> ' + JSON.stringify(req.params));
-	console.log('>>>>> ' + org.oauth.instance_url);
-	console.log('>>>>> ' + org.oauth.access_token);
 	var body = req.query;
-	console.log('>>>>> ' + JSON.stringify(body));
 
 	// Use PATCH method to update existing records
 	request.patch(
@@ -299,10 +296,9 @@ function updateUsingRequest (req, response) {
 	  },
 	  function(err,resp,body) {
 		console.log('error:', err); // Print the error if one occurred
-		console.log('statusCode:', resp && resp.statusCode); // Print the response status code if a response was received
   
 		// Redirect back to the record detail page
-		return response.end('/');
+		return response.end('done');
 	  });
   
   };
@@ -310,8 +306,10 @@ function updateUsingRequest (req, response) {
 
 
 
-// Subscribe to Salesforce Platform Events using
-// Faye and Bayeux
+// *********************************************
+// Using platform events to subscribe to 
+// Work Order changes
+// *********************************************
 let faye = require('faye');
 let bayeux = new faye.NodeAdapter({mount: '/faye', timeout: 45});
 bayeux.attach(server);
@@ -321,23 +319,24 @@ bayeux.on('disconnect', function(clientId) {
 
 // Subscribe to Platform Events
 let subscribeToPlatformEvents = (auth) => {
-	console.log('subscribeToPlatformEvents: instance_url=' + auth.instance_url);
-  var client = new faye.Client(auth.instance_url + '/cometd/43.0/');
-  client.setHeader('Authorization', 'OAuth ' + auth.access_token);
-  client.subscribe('/event/WorkOrderUpdated__e', function(message) {
-	  // Send message to all connected Socket.io clients
-	  console.log("***************");
-	  console.log("Server received Platform Event WorkOrderUpdated__e");
-	  console.log("  message " + JSON.stringify(message));
-    console.log(' emitting ' + 'workorder-updated');
-    io.of('/').emit('workorder-updated', {
-      WorkOrderId: message.payload.WorkOrderId__c,
-      WorkOrderNumber: message.payload.WorkOrderNumber__c,
-      Subject: message.payload.Subject__c,
-      Description: message.payload.Description__c,
-      Status: message.payload.Status__c
-    });
-  }.bind(this));
+	console.log('subscribeToPlatformEvents');
+  	var client = new faye.Client(auth.instance_url + '/cometd/43.0/');
+  	client.setHeader('Authorization', 'OAuth ' + auth.access_token);
+  	client.subscribe('/event/WorkOrderUpdated__e', function(message) {
+		// Platform Event has been received
+		console.log(' ');
+	  	console.log("***************");
+	  	console.log("Server received Platform Event WorkOrderUpdated__e");
+	  	console.log("  message " + JSON.stringify(message, null, 2));
+		// Send message to all connected Socket.io clients
+    	io.of('/').emit('workorder-updated', {
+      		WorkOrderId: message.payload.WorkOrderId__c,
+      		WorkOrderNumber: message.payload.WorkOrderNumber__c,
+      		Subject: message.payload.Subject__c,
+      		Description: message.payload.Description__c,
+      		Status: message.payload.Status__c
+    	});
+  	}.bind(this));
 };
 
 
