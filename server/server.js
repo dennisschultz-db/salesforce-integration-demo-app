@@ -2,6 +2,9 @@
 var express = require('express');
 var path = require('path');
 var dotenv = require('dotenv');
+var logger = require('morgan');
+var cookieParser = require('cookie-parser');
+var bodyParser = require('body-parser');
 var Promise = require("bluebird");
 var nforce = require('nforce');
 var session = require('express-session');
@@ -11,6 +14,7 @@ var config = require('./config');
 
 dotenv.config({path: './.env'});
 dotenv.load();
+
 
 // Create connection to Salesforce
 var org = nforce.createConnection({
@@ -45,6 +49,11 @@ app.set('port', port);
 let server = require('http').Server(app);
 const socketIO = require('socket.io');
 const io = socketIO(server);
+
+app.use(logger('dev'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(cookieParser());
 
 
 // Enable server-side sessions
@@ -196,7 +205,6 @@ app.get('/workorders', function (request, response) {
  */
 app.get('/workorders/:woId', function (request, response) {
 
-	console.log('workorder detail ' + request.params);
   // query for record, contacts and opportunities
   Promise.join(
     org.getRecord({ type: 'workorder', id: request.params.woId }),
@@ -207,6 +215,32 @@ app.get('/workorders/:woId', function (request, response) {
 	});
 });
 
+app.get('/workorder/:woId', function(request, response) {
+	return response.end('done');
+});
+
+app.post('/workorder/:woId', function(request, response) {
+
+	console.log('post changes ');
+
+	var body = request.body;
+
+	var wo = nforce.createSObject('WorkOrder');
+	wo.set('Id', request.params.woId);
+	wo.set('Subject', body.subject);
+	wo.set('Status', body.status);
+	wo.set('Description', body.description);
+  
+	org.update({ sobject: wo })
+	  .then(function(workorder){
+		  console.log("updated record in SF");
+		// Redirect to app main page
+		return response.end("done");
+	  });
+
+	  return response.redirect('/index.html');
+  });
+  
 
 /**
  * Endpoint for publishing approval of a given mix

@@ -8,7 +8,7 @@ var socket = io();
 var MixList = module.exports = React.createClass({
 	getInitialState: function () {
 		return {
-			mixes: null
+			workorders: null
 		};
 	},
 
