@@ -10,20 +10,32 @@ var WODetail = module.exports = React.createClass({
     };
 	},
 
-	componentDidMount: function () {
+  onWorkorderUpdated : function (updatedWorkorder) {
+    var _self = this;
+    // if the workorder is in the list, update it
+    console.log('Detail onWororderUpdated');
+    var _workorder = this.state.workorder;
+      if (_workorder.record.id == updatedWorkorder.WorkOrderId) {
+          console.log('updating ' + JSON.stringify(_workorder) + ' with ' + JSON.stringify(updatedWorkorder));
+          _workorder.record.workordernumber = updatedWorkorder.WorkOrderNumber
+          _workorder.record.subject = updatedWorkorder.Subject
+          _workorder.record.description = updatedWorkorder.Description;
+          _workorder.record.status = updatedWorkorder.Status;
+          _self.setState({
+              workorder: _workorder
+          });
+        }
+},
+
+
+componentDidMount: function () {
     // Get this Work Order
     console.log('WODetailComponent:componentDidMount ' + JSON.stringify(this.props.match.params.id));
 
-    socket.on('mix_submitted-' + this.props.id, function(newMix) {
-         console.log('New mix socket event occured for ' + JSON.stringify(newMix));
-         this.onSubmitMix(newMix);
+    socket.on('workorder-updated', function(updatedWorkorder) {
+      console.log('Updated workorder event occured for ' + JSON.stringify(updatedWorkorder));
+      this.onWorkorderUpdated(updatedWorkorder);
     }.bind(this));
-
-    socket.on('mix_unsubmitted-' + this.props.id, function(mix) {
-        console.log('Unsubmit mix socket event occured for ' + JSON.stringify(mix.mixId));
-        this.deleteMix(mix.mixId);
-    }.bind(this));
-
 
     $.ajax({
         url: '/workorders/' + this.props.match.params.id,
@@ -67,9 +79,7 @@ onSubmit: function(event) {
   console.log('submit workorder ');
 
   $.ajax({
-    type: 'POST',
     url: '/workorder/' + this.state.workorder.record.id,
-    dataType: 'json',
     data: this.state.workorder.record,
     success: function (data) {
         console.log('posted workorder ');
@@ -77,7 +87,7 @@ onSubmit: function(event) {
     }.bind(this),
     error: function (xhr, status, err) {
         if (xhr.status != 401) // Ignore 'unauthorized' responses before logging in
-            console.error('Failed to retrieve mixes.');
+            console.error('Failed to update workorder ' + xhr.status + ' ' + JSON.stringify(status));
             this.props.history.push('/')
           }.bind(this)
   });
@@ -121,7 +131,7 @@ render: function() {
 
         <div className="slds-media__body">
           <p className="slds-text-heading--label">Work Order</p>
-          <h1 className="slds-text-heading--medium">{this.state.workorder.record.subject}</h1>
+          <h1 className="slds-text-heading--medium">{this.state.workorder.record.workordernumber}</h1>
         </div>
 
       </div>

@@ -12,40 +12,37 @@ var MixList = module.exports = React.createClass({
 		};
 	},
 
-    onSubmitMix : function (newMix) {
-        // if the mix is alresdy in the list: do nothing
-        var exists = false;
-        var _mixes = this.state.mixes;
-        _mixes.forEach(function(mix) {
-            if (mix.mixId == newMix.mixId) {
-                exists = true;
+    onWorkorderUpdated : function (updatedWorkorder) {
+        var _self = this;
+        // if the workorder is in the list, update it
+        console.log('List onWororderUpdated');
+        console.log('current workorders ' + JSON.stringify(this.state.workorders));
+        var _workorders = this.state.workorders;
+        _workorders.forEach(function(workorder) {
+            if (workorder.id == updatedWorkorder.WorkOrderId) {
+                console.log('updating ' + JSON.stringify(workorder) + ' with ' + JSON.stringify(updatedWorkorder));
+                workorder.workordernumber = updatedWorkorder.WorkOrderNumber
+                workorder.subject = updatedWorkorder.Subject
+                workorder.description = updatedWorkorder.Description;
+                workorder.status = updatedWorkorder.Status;
+                _self.setState({
+                    workorders: _workorders
+                });
             }
         });
-        // if the mix is not in the list: add it
-        if (!exists) {
-            _mixes.push(newMix);
-            this.setState({
-                mixes : _mixes
-            });
-        }
     },
 
 
+
 	componentDidMount: function () {
-        // Get Mixes
         console.log('WOListComponent:componentDidMount');
 
-        socket.on('mix_submitted-' + this.props.id, function(newMix) {
-            console.log('New mix socket event occured for ' + JSON.stringify(newMix));
-            this.onSubmitMix(newMix);
+        socket.on('workorder-updated', function(updatedWorkorder) {
+            console.log('Updated workorder event occured for ' + JSON.stringify(updatedWorkorder));
+            this.onWorkorderUpdated(updatedWorkorder);
         }.bind(this));
-
-        socket.on('mix_unsubmitted-' + this.props.id, function(mix) {
-            console.log('Unsubmit mix socket event occured for ' + JSON.stringify(mix.mixId));
-            this.deleteMix(mix.mixId);
-        }.bind(this));
-
-
+      
+        // Get Workorders
         $.ajax({
             url: '/workorders',
             dataType: 'json',
@@ -61,21 +58,6 @@ var MixList = module.exports = React.createClass({
         });
 	},
 	
-    deleteMix: function(mixId) {
-        console.log('deleting mix ' + mixId);
-        var _mixes = this.state.mixes;
-        var index = _mixes.length - 1;
-        while (index >= 0) {
-            if (_mixes[index].mixId === mixId) {
-                _mixes.splice(index, 1);
-            }
-            index -= 1;
-        }
-        this.setState({
-            mixes: _mixes
-        });
-    },
-
 	render: function() {
         return (
             <div>
@@ -120,11 +102,12 @@ var MixList = module.exports = React.createClass({
                                 <th scope="col">Work Order Number</th>
                                 <th scope="col">Subject</th>
                                 <th scope="col">Status</th>
+                                <th scope="col">Description</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 { this.state.workorders.map(function(workorder, index){
-                                    return <WorkOrder key= {index} workorder = {workorder} onApproval= {this.deleteWorkorder}/>; 
+                                    return <WorkOrder key= {index} workorder = {workorder} />; 
                                 }.bind(this))}
                             </tbody>
                             </table>

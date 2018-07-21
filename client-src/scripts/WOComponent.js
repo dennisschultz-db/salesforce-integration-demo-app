@@ -3,41 +3,6 @@ var $ = require('jquery'),
 var Link = require('react-router-dom').Link;
 
 var WorkOrder = module.exports = React.createClass({
-	propTypes: {
-        key:        React.PropTypes.number,
-        mix:        React.PropTypes.object,
-        onApproval: React.PropTypes.func
-    },
-    getInitialState: function () {
-		return {
-            mix : null,
-            showDetails : false
-		};
-	},
-
-
-	getMixDetails: function () {
-        this.setState({
-            showDetails: !this.state.showDetails
-        })
-        console.log('Toggling showDetails');
-	},
-
-	approveMix: function () {
-        console.log('Approving mix ' + this.props.mix.mixId);
-
-        $.ajax({
-            url: '/approvals/' + this.props.mix.mixId,
-            dataType: 'json',
-            success: function (data) {
-                this.props.onApproval(this.props.mix.mixId);
-            }.bind(this),
-            error: function (xhr, status, err) {
-                if (xhr.status != 401) // Ignore 'unauthorized' responses before logging in
-                    console.error('Failed to approve mix');
-            }.bind(this)
-        });
-    },
 
   render: function() {
     return (
@@ -53,6 +18,7 @@ var WorkOrder = module.exports = React.createClass({
                 <td><Link to={'/workorder/' + this.props.workorder.id}>{this.props.workorder.workordernumber}</Link></td>
                 <td>{this.props.workorder.subject}</td>
                 <td>{this.props.workorder.status}</td>
+                <td>{this.props.workorder.description}</td>
             </tr>
 
     );

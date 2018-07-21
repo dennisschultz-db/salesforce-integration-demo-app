@@ -8,9 +8,12 @@ var bodyParser = require('body-parser');
 var Promise = require("bluebird");
 var nforce = require('nforce');
 var session = require('express-session');
+var request = require('request');  // For demonstration of raw HTTP interaction with Salesforce
 
 // App dependencies
 var config = require('./config');
+
+var subscriptionComplete = false;
 
 dotenv.config({path: './.env'});
 dotenv.load();
@@ -179,7 +182,7 @@ app.get('/auth/whoami', function (request, response) {
 		}
 
 		// If existing session, subscribe to events
-		subscribeToPlatformEvents(curSession.sfdcAuth, JSON.parse(userData).organization_id);
+		subscribeToPlatformEvents(curSession.sfdcAuth);
 
 		// Return user data
 		response.send(userData);
@@ -193,7 +196,12 @@ app.get('/auth/whoami', function (request, response) {
  */
 app.get('/workorders', function (request, response) {
 
-	org.query({ query: "Select Id, WorkOrderNumber, WorkTypeId, Subject, Status from WorkOrder Order By LastModifiedDate DESC Limit 25" })
+	if (!subscriptionComplete) {
+		subscribeToPlatformEvents(org.oauth);
+		subscriptionComplete = true;
+	}
+
+	org.query({ query: "Select Id, WorkOrderNumber, WorkTypeId, Subject, Status, Description from WorkOrder Order By LastModifiedDate DESC Limit 25" })
     .then(function(results){
 		response.json(results.records);
 		return;
@@ -215,16 +223,35 @@ app.get('/workorders/:woId', function (request, response) {
 	});
 });
 
+/**
+ * Endpoint for publishing updates to a workorder
+ */
 app.get('/workorder/:woId', function(request, response) {
-	return response.end('done');
+//	updateUsingNforce(request, response);
+	updateUsingRequest(request, response);
 });
 
-app.post('/workorder/:woId', function(request, response) {
 
-	console.log('post changes ');
 
-	var body = request.body;
 
+
+// *********************************************
+// Examples of multiple methods that can be used
+// to update an existing Work Order record
+// *********************************************
+
+// *********************************************
+// Updates a record using the Nforce library
+//
+// nforce is node.js a REST API wrapper for force.com, database.com, and salesforce.com.
+// https://www.npmjs.com/package/nforce 
+// *********************************************
+function updateUsingNforce(request, response) {
+	console.log('Update workorder using Nforce library');
+	console.log('>>>>> ' + JSON.stringify(request.params));
+	var body = request.query;
+	console.log('>>>>> ' + JSON.stringify(body));
+	
 	var wo = nforce.createSObject('WorkOrder');
 	wo.set('Id', request.params.woId);
 	wo.set('Subject', body.subject);
@@ -235,42 +262,53 @@ app.post('/workorder/:woId', function(request, response) {
 	  .then(function(workorder){
 		  console.log("updated record in SF");
 		// Redirect to app main page
-		return response.end("done");
-	  });
+		return response.end('done');
+	});
+};
 
-	  return response.redirect('/index.html');
-  });
+
+
+
+
+// *********************************************
+// Updates a record using the Request library
+// Request is designed to be the simplest way possible to make http calls.
+// 
+// https://www.npmjs.com/package/request
+// https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/dome_update_fields.htm 
+// *********************************************
+function updateUsingRequest (req, response) {
+	console.log('Update workorder using Request library');
+	console.log('>>>>> ' + JSON.stringify(req.params));
+	console.log('>>>>> ' + org.oauth.instance_url);
+	console.log('>>>>> ' + org.oauth.access_token);
+	var body = req.query;
+	console.log('>>>>> ' + JSON.stringify(body));
+
+	// Use PATCH method to update existing records
+	request.patch(
+	  org.oauth.instance_url + '/services/data/v43.0/sobjects/WorkOrder/' + req.params.woId,
+	  {headers: {
+		'Authorization' : 'Bearer ' + org.oauth.access_token,
+		'Content-Type': 'application/json'
+	   },
+	   body: JSON.stringify({
+		  Subject: body.subject,
+		  Status: body.status,
+		  Description: body.description})
+	  },
+	  function(err,resp,body) {
+		console.log('error:', err); // Print the error if one occurred
+		console.log('statusCode:', resp && resp.statusCode); // Print the response status code if a response was received
+  
+		// Redirect back to the record detail page
+		return response.end('/');
+	  });
+  
+  };
   
 
-/**
- * Endpoint for publishing approval of a given mix
- */
-app.get('/approvals/:mixId', function (request, response) {
-	var curSession = getSession(request, response, true);
-	console.log('/approvals/:mixId sfdcAuth ' + JSON.stringify(curSession.sfdcAuth));
-	if (curSession == null)
-		return;
 
-	let mixId = request.params.mixId;
-
-	var apiRequestOptions = sfdc.data.createDataRequest(curSession.sfdcAuth, 'sobjects/Mix_Approved__e');
-	apiRequestOptions.body = {
-		"Mix_Id__c": mixId,
-		"Confirmation_Number__c": "xyz123"
-	};
-	apiRequestOptions.json = true;
-
-	httpClient.post(apiRequestOptions, function (error, payload) {
-		if (error) {
-			console.error('Force.com data API error: ' + JSON.stringify(error));
-			response.status(500).json(error);
-			return;
-		} else {
-			response.send(payload.body);
-			return;
-		}
-	});
-});
 
 // Subscribe to Salesforce Platform Events using
 // Faye and Bayeux
@@ -282,33 +320,27 @@ bayeux.on('disconnect', function(clientId) {
 });
 
 // Subscribe to Platform Events
-let subscribeToPlatformEvents = (auth, id) => {
-	console.log('subscribeToPlatformEvents');
-    var client = new faye.Client(auth.instance_url + '/cometd/40.0/');
-    client.setHeader('Authorization', 'OAuth ' + auth.access_token);
-    client.subscribe('/event/Mix_Submitted__e', function(message) {
-		// Send message to all connected Socket.io clients
-		console.log("***************");
-		console.log("Server received Platform Event Mix_Submitted__e");
-		console.log("  message " + JSON.stringify(message));
-		console.log(' emitting ' + 'mix_submitted-' + id);
-        io.of('/').emit('mix_submitted-' + id, {
-            mixId: message.payload.Mix_Id__c,
-            mixName: message.payload.Mix_Name__c,
-			account: message.payload.Account__c
-        });
-    }.bind(this));
-    client.subscribe('/event/Mix_Unsubmitted__e', function(message) {
-        // Send message to all connected Socket.io clients
-		console.log("***************");
-		console.log("Server received Platform Event Mix_Unsubmitted__e");
-		console.log("  message " + JSON.stringify(message));
-		console.log(' emitting ' + 'mix_unsubmitted-' + id);
-        io.of('/').emit('mix_unsubmitted-' + id, {
-            mixId: message.payload.Mix_Id__c,
-        });
-    }.bind(this));
+let subscribeToPlatformEvents = (auth) => {
+	console.log('subscribeToPlatformEvents: instance_url=' + auth.instance_url);
+  var client = new faye.Client(auth.instance_url + '/cometd/43.0/');
+  client.setHeader('Authorization', 'OAuth ' + auth.access_token);
+  client.subscribe('/event/WorkOrderUpdated__e', function(message) {
+	  // Send message to all connected Socket.io clients
+	  console.log("***************");
+	  console.log("Server received Platform Event WorkOrderUpdated__e");
+	  console.log("  message " + JSON.stringify(message));
+    console.log(' emitting ' + 'workorder-updated');
+    io.of('/').emit('workorder-updated', {
+      WorkOrderId: message.payload.WorkOrderId__c,
+      WorkOrderNumber: message.payload.WorkOrderNumber__c,
+      Subject: message.payload.Subject__c,
+      Description: message.payload.Description__c,
+      Status: message.payload.Status__c
+    });
+  }.bind(this));
 };
+
+
 
 server.listen(app.get('port'), function () {
 	console.log('Server started on port ' + app.get('port') + '/');
