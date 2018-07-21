@@ -3,7 +3,7 @@ var $ = require('jquery'),
 
 var NavBar = require('./NavBarComponent.js'),
   LoginPanel = require('./LoginPanelComponent.js'),
-  MixList = require('./MixListComponent.js');
+  WOList = require('./WOListComponent.js');
 
 
 var App = module.exports = React.createClass({
@@ -34,11 +34,7 @@ var App = module.exports = React.createClass({
     return (
       <div>
         <NavBar user={this.state.user} />
-        { this.state.user == null ?
-          <LoginPanel />
-          :
-          <MixList id={this.state.user.organization_id} animateIn="true"/>
-        }
+        <WOList id="demo" animateIn="true"/>
         <div className="credits">Image credits: w-dog.net, icons8.com</div>
       </div>
     );

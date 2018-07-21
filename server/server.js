@@ -1,31 +1,41 @@
 // 3rd party dependencies
-var httpClient = require("request"),
-	path = require('path'),
-	express = require('express'),
-	session = require('express-session'),
-	pgSession = require('connect-pg-simple')(session),
-	SalesforceClient = require('salesforce-node-client');
+var express = require('express');
+var path = require('path');
+var dotenv = require('dotenv');
+var nforce = require('nforce');
+var session = require('express-session');
 
 // App dependencies
 var config = require('./config');
 
-// Configure Salesforce client while allowing command line overrides
-if (process.env.sfdcDomain)
-	config.sfdc.auth.domain = process.env.sfdcAuthDomain;
-if (process.env.sfdcAuthConsumerKey)
-	config.sfdc.auth.consumerKey = process.env.sfdcAuthConsumerKey;
-if (process.env.sfdcAuthConsumerSecret)
-	config.sfdc.auth.consumerSecret = process.env.sfdcAuthConsumerSecret;
-if (process.env.sfdcAuthCallbackUrl)
-	config.sfdc.auth.callbackUrl = process.env.sfdcAuthCallbackUrl;
+dotenv.config({path: './.env'});
+dotenv.load();
 
-var sfdc = new SalesforceClient(config.sfdc);
+// Create connection to Salesforce
+var org = nforce.createConnection({
+	clientId: process.env.CLIENT_ID,
+	clientSecret: process.env.CLIENT_SECRET,
+	redirectUri: 'http://localhost:3000/oauth/_callback',
+	environment: 'production',
+	mode: 'single'
+  });
+  
+  // Authenticate to Salesforce
+  org.authenticate({ 
+	username: process.env.SFUSERNAME, 
+	password: process.env.SFPASSWORD
+	}, function(err, resp){
+	  // the oauth object was stored in the connection object
+	  if(!err) {
+		console.log('Cached Token: ' + org.oauth.access_token);
+		
+	  } else {
+		console.log('error ' + err);
+	  }
+  
+  });
+  
 
-// Prepare command line overrides for server config
-if (process.env.isHttps)
-	config.server.isHttps = (process.env.isHttps === 'true');
-if (process.env.sessionSecretKey)
-	config.server.sessionSecretKey = process.env.sessionSecretKey;
 
 // Setup HTTP server
 var app = express();
@@ -38,7 +48,6 @@ const io = socketIO(server);
 
 // Enable server-side sessions
 app.use(session({
-	store: new pgSession(), // Uses default DATABASE_URL
 	secret: config.server.sessionSecretKey,
 	cookie: {
 		secure: config.server.isHttps,
@@ -170,78 +179,29 @@ app.get('/auth/whoami', function (request, response) {
 
 
 /**
- * Endpoint for retrieving all mixes submitted to manufacturing
+ * Endpoint for retrieving all work orders
  */
-app.get('/mixes', function (request, response) {
-	var curSession = getSession(request, response, true);
-	console.log('/mixes sfdcAuth ' + JSON.stringify(curSession.sfdcAuth));
-	if (curSession == null)
+app.get('/workorders', function (request, response) {
+
+	org.query({ query: "Select Id, WorkOrderNumber, WorkTypeId, Subject, Status from WorkOrder Order By LastModifiedDate DESC" })
+    .then(function(results){
+		response.json(results.records);
 		return;
-
-	let q = encodeURI("SELECT Id, Name, Account__r.Name FROM Merchandising_Mix__c WHERE Status__c='Submitted to Manufacturing'");
-
-	var apiRequestOptions = sfdc.data.createDataRequest(curSession.sfdcAuth, 'query?q=' + q);
-	apiRequestOptions.json = true;
-
-	httpClient.get(apiRequestOptions, function (error, payload) {
-		if (error) {
-			console.error('Force.com data API error: ' + JSON.stringify(error));
-			response.status(500).json(error);
-			return;
-		} else {
-			let mixes = payload.body.records;
-			let prettyMixes = [];
-			mixes.forEach(mix => {
-				prettyMixes.push({
-					mixId: mix.Id,
-					mixName: mix.Name,
-					account: mix.Account__r.Name
-				});
-			});
-			response.json(prettyMixes);
-			return;
-		}
-	});
+    });
 });
 
 /**
  * Endpoint for retrieving details of a single mix
  */
-app.get('/mixes/:mixId', function (request, response) {
-	var curSession = getSession(request, response, true);
-	console.log('/mixes/:mixId sfdcAuth ' + JSON.stringify(curSession.sfdcAuth));
-	if (curSession == null)
-		return;
+app.get('/workorders/:woId', function (request, response) {
 
-	let mixId = request.params.mixId;
-	let q = encodeURI("SELECT Id, Merchandise__r.Name, Merchandise__r.Price__c, Merchandise__r.Category__c, Merchandise__r.Picture_URL__c, Qty__c " +
-		"FROM Mix_Item__c " +
-		"WHERE Merchandising_Mix__c = '" + mixId + "'");
-
-	var apiRequestOptions = sfdc.data.createDataRequest(curSession.sfdcAuth, 'query?q=' + q);
-	apiRequestOptions.json = true;
-
-	httpClient.get(apiRequestOptions, function (error, payload) {
-		if (error) {
-			console.error('Force.com data API error: ' + JSON.stringify(error));
-			response.status(500).json(error);
-			return;
-		} else {
-			let mixItems = payload.body.records;
-			let prettyMixItems = [];
-			mixItems.forEach(mixItem => {
-				prettyMixItems.push({
-					productName: mixItem.Merchandise__r.Name,
-					price: mixItem.Merchandise__r.Price__c,
-					pictureURL: mixItem.Merchandise__r.Picture_URL__c,
-					mixId: mixItem.Id,
-					productId: mixItem.Merchandise__r,
-					qty: mixItem.Qty__c
-				});
-			});
-			response.json(prettyMixItems);
-			return;
-		}
+  // query for record, contacts and opportunities
+  Promise.join(
+    org.getRecord({ type: 'workorder', id: req.params.id }),
+    org.query({ query: "Select Id, Description, Status From WorkOrderLineItem where WorkOrderId = '" + req.params.id + "'"}),
+    org.query({ query: "Select Id, Contact.Name, Status, SchStartDateFormatted__c, SchStartTimeFormatted__c From ServiceAppointment where ParentRecordId = '" + req.params.id + "'"}),
+    function(workorder, lineitems, appointments) {
+        response.json({ record: workorder, lineitems: lineitems.records, appointments: appointments.records });
 	});
 });
 
