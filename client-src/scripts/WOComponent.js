@@ -1,8 +1,6 @@
 var $ = require('jquery'),
-	React = require('react');
-
-var WODetails = require('./WODetailsComponent.js');
-
+    React = require('react');
+var Link = require('react-router-dom').Link;
 
 var WorkOrder = module.exports = React.createClass({
 	propTypes: {
@@ -52,7 +50,7 @@ var WorkOrder = module.exports = React.createClass({
                         <span className="slds-assistive-text">Work Order</span>
                     </span>
                 </td>
-                <td><a href={'/workorders/' + this.props.workorder.id}>{this.props.workorder.workordernumber}</a></td>
+                <td><Link to={'/workorder/' + this.props.workorder.id}>{this.props.workorder.workordernumber}</Link></td>
                 <td>{this.props.workorder.subject}</td>
                 <td>{this.props.workorder.status}</td>
             </tr>

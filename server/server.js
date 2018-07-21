@@ -2,6 +2,7 @@
 var express = require('express');
 var path = require('path');
 var dotenv = require('dotenv');
+var Promise = require("bluebird");
 var nforce = require('nforce');
 var session = require('express-session');
 
@@ -183,7 +184,7 @@ app.get('/auth/whoami', function (request, response) {
  */
 app.get('/workorders', function (request, response) {
 
-	org.query({ query: "Select Id, WorkOrderNumber, WorkTypeId, Subject, Status from WorkOrder Order By LastModifiedDate DESC" })
+	org.query({ query: "Select Id, WorkOrderNumber, WorkTypeId, Subject, Status from WorkOrder Order By LastModifiedDate DESC Limit 25" })
     .then(function(results){
 		response.json(results.records);
 		return;
@@ -191,15 +192,16 @@ app.get('/workorders', function (request, response) {
 });
 
 /**
- * Endpoint for retrieving details of a single mix
+ * Endpoint for retrieving details of a single work order
  */
 app.get('/workorders/:woId', function (request, response) {
 
+	console.log('workorder detail ' + request.params);
   // query for record, contacts and opportunities
   Promise.join(
-    org.getRecord({ type: 'workorder', id: req.params.id }),
-    org.query({ query: "Select Id, Description, Status From WorkOrderLineItem where WorkOrderId = '" + req.params.id + "'"}),
-    org.query({ query: "Select Id, Contact.Name, Status, SchStartDateFormatted__c, SchStartTimeFormatted__c From ServiceAppointment where ParentRecordId = '" + req.params.id + "'"}),
+    org.getRecord({ type: 'workorder', id: request.params.woId }),
+    org.query({ query: "Select Id, Description, Status From WorkOrderLineItem where WorkOrderId = '" + request.params.woId + "'"}),
+    org.query({ query: "Select Id, Contact.Name, Status, SchStartDateFormatted__c, SchStartTimeFormatted__c From ServiceAppointment where ParentRecordId = '" + request.params.woId + "'"}),
     function(workorder, lineitems, appointments) {
         response.json({ record: workorder, lineitems: lineitems.records, appointments: appointments.records });
 	});

@@ -1,7 +1,7 @@
 var $ = require('jquery'),
 	React = require('react');
 
-var MixDetail = require('./MixDetailComponent.js');
+var MixDetail = require('./WODetailComponent.js');
 
 var MixDetails = module.exports = React.createClass({
 	getInitialState: function () {

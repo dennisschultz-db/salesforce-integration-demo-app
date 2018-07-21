@@ -1,9 +1,8 @@
 var $ = require('jquery'),
   React = require('react');
 
-var NavBar = require('./NavBarComponent.js'),
-  LoginPanel = require('./LoginPanelComponent.js'),
-  WOList = require('./WOListComponent.js');
+var NavBar = require('./NavBarComponent.js');
+var Main = require('./Main.js');
 
 
 var App = module.exports = React.createClass({
@@ -33,9 +32,8 @@ var App = module.exports = React.createClass({
   render: function() {
     return (
       <div>
-        <NavBar user={this.state.user} />
-        <WOList id="demo" animateIn="true"/>
-        <div className="credits">Image credits: w-dog.net, icons8.com</div>
+        <NavBar />
+        <Main />
       </div>
     );
   }
