@@ -81,12 +81,6 @@ var MixList = module.exports = React.createClass({
                             </div>
                         </div>
 
-                        <div className="slds-col slds-no-flex slds-align-middle">
-                            <div className="slds-button-group" role="group">
-                                <a className="slds-button slds-button--neutral" href="/new">New Work Order</a>
-                            </div>
-                        </div>
-
                     </div>
                 </div>
 
