@@ -81,9 +81,13 @@ onSubmit: function(event) {
   $.ajax({
     url: '/workorder/' + this.state.workorder.record.id,
     data: this.state.workorder.record,
+    dataType: "json",
     success: function (data) {
-        console.log('posted workorder ');
-        this.props.history.push('/')
+      if (data.status == 'failure') {
+        alert ('Failed to update Work Order\n\n' + data.errorcode + '\n' + data.message);
+      }
+      console.log('posted workorder ');
+      this.props.history.push('/')
     }.bind(this),
     error: function (xhr, status, err) {
         if (xhr.status != 401) // Ignore 'unauthorized' responses before logging in

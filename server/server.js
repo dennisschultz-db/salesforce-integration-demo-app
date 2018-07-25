@@ -23,7 +23,7 @@ dotenv.load();
 var org = nforce.createConnection({
 	clientId: process.env.CLIENT_ID,
 	clientSecret: process.env.CLIENT_SECRET,
-	redirectUri: 'http://localhost:3000/oauth/_callback',
+	redirectUri: 'http://localhost:8080/oauth/callback',
 	environment: 'production',
 	mode: 'single'
   });
@@ -50,8 +50,6 @@ var app = express();
 var port = process.env.PORT || 8080;
 app.set('port', port);
 let server = require('http').Server(app);
-const socketIO = require('socket.io');
-const io = socketIO(server);
 
 app.use(logger('dev'));
 app.use(bodyParser.json());
@@ -88,7 +86,7 @@ app.get('/workorders', function (request, response) {
 
 	org.query({ 
 		query: "Select Id, WorkOrderNumber, WorkTypeId, Subject, Status, Description " +
-		       "from WorkOrder Order By LastModifiedDate DESC Limit 25" 
+		       "from WorkOrder Order By WorkOrderNumber DESC Limit 25" 
 	}).then(function(results){
 		response.json(results.records);
 		return;
@@ -167,24 +165,45 @@ function updateUsingRequest (req, response) {
 	console.log('Update workorder using Request library');
 	var body = req.query;
 
+	// Construct the uri of the Work Order resource
+	let _uri = org.oauth.instance_url + '/services/data/v43.0/sobjects/WorkOrder/' + req.params.woId;
+
+	// Construct the headers needed for the request
+	let _headers = {
+		'Authorization' : 'Bearer ' + org.oauth.access_token,
+		'Content-Type': 'application/json'};
+
+	// Construct the JSON payload of the updated values
+	let _payload = {
+		Subject: body.subject,
+		Status: body.status,
+		Description: body.description};
+
 	// Use PATCH method to update existing records
 	request.patch(
-	  org.oauth.instance_url + '/services/data/v43.0/sobjects/WorkOrder/' + req.params.woId,
-	  {headers: {
-		'Authorization' : 'Bearer ' + org.oauth.access_token,
-		'Content-Type': 'application/json'
-	   },
-	   body: JSON.stringify({
-		  Subject: body.subject,
-		  Status: body.status,
-		  Description: body.description})
-	  },
-	  function(err,resp,body) {
-		console.log('error:', err); // Print the error if one occurred
+	  	_uri,
+	  	{
+			headers: _headers,
+			body: JSON.stringify(_payload)
+		},
+	  	function(err,resp,body) {
+			console.log('\n\nWork Order Update HTTP Response Code: ' + resp.statusCode);
+
+			if (resp.statusCode < 303) {
+				console.log('success\n\n');
+			} else {
+				var body = JSON.parse(resp.body);
+				console.log('response body: ' + JSON.stringify(body[0],null,2) + '\n\n');
+				return response.json( {
+					status : 'failure',
+					errorcode : body[0].errorCode,
+					message: body[0].message});
+			}
   
-		// Redirect back to the record detail page
-		return response.end('done');
-	  });
+			// Redirect back to the record detail page
+			return response.json({status : 'success'});
+		}
+	);
   
   };
   
@@ -197,31 +216,46 @@ function updateUsingRequest (req, response) {
 // *********************************************
 let faye = require('faye');
 let bayeux = new faye.NodeAdapter({mount: '/faye', timeout: 45});
+
 bayeux.attach(server);
 bayeux.on('disconnect', function(clientId) {
     console.log('Bayeux server disconnect');
 });
 
+const socketIO = require('socket.io');
+const io = socketIO(server);
+
 // Subscribe to Platform Events
 let subscribeToPlatformEvents = (auth) => {
 	console.log('subscribeToPlatformEvents');
-  	var client = new faye.Client(auth.instance_url + '/cometd/43.0/');
-  	client.setHeader('Authorization', 'OAuth ' + auth.access_token);
-  	client.subscribe('/event/WorkOrderUpdated__e', function(message) {
-		// Platform Event has been received
-		console.log(' ');
-	  	console.log("***************");
-	  	console.log("Server received Platform Event WorkOrderUpdated__e");
-	  	console.log("  message " + JSON.stringify(message, null, 2));
-		// Send message to all connected Socket.io clients
-    	io.of('/').emit('workorder-updated', {
-      		WorkOrderId: message.payload.WorkOrderId__c,
-      		WorkOrderNumber: message.payload.WorkOrderNumber__c,
-      		Subject: message.payload.Subject__c,
-      		Description: message.payload.Description__c,
-      		Status: message.payload.Status__c
-    	});
-  	}.bind(this));
+	
+	// Construct the uri of the cometd resource root.
+	let _uri = auth.instance_url + '/cometd/43.0/';
+
+	// Construct the header needed for the request
+	let _oauth_header = 'OAuth ' + auth.access_token;
+
+	// WorkOrderUpdated event path
+	let _event_path = '/event/WorkOrderUpdated__e';
+
+  	var client = new faye.Client(_uri);
+  	client.setHeader('Authorization', _oauth_header);
+  	client.subscribe(
+		_event_path, 
+		function(message) {
+			// Platform Event has been received
+		  	console.log("\n\nReceived Platform Event WorkOrderUpdated__e");
+	  		console.log("  message " + JSON.stringify(message, null, 2));
+			// Send message to all connected Socket.io clients
+    		io.of('/').emit('workorder-updated', {
+      			WorkOrderId: message.payload.WorkOrderId__c,
+	      		WorkOrderNumber: message.payload.WorkOrderNumber__c,
+    	  		Subject: message.payload.Subject__c,
+      			Description: message.payload.Description__c,
+      			Status: message.payload.Status__c
+    		});
+		  }.bind(this)
+	);
 };
 
 
