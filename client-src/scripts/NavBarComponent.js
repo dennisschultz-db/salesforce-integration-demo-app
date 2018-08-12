@@ -11,7 +11,7 @@ var NavBar = module.exports = React.createClass({
             <nav className="slds-p-bottom_none" role="navigation">
                 <p id="bread-crumb-label" className="slds-assistive-text">You are here:</p>
                 <ol className="slds-breadcrumb slds-list--horizontal" aria-labelledby="bread-crumb-label">
-                    <li className="slds-list__item slds-text-heading--label"><a href="/">TA Road Squad Work Order System Web Demo</a></li>
+                    <li className="slds-list__item slds-text-heading--label"><a href="/">External Work Order Processor</a></li>
                 </ol>
             </nav>
         </div>
