@@ -48,7 +48,7 @@ componentDidMount: function () {
         }.bind(this),
         error: function (xhr, status, err) {
             if (xhr.status != 401) // Ignore 'unauthorized' responses before logging in
-                console.error('Failed to retrieve mixes.');
+                console.error('Failed to retrieve work orders.');
         }.bind(this)
     });
 },

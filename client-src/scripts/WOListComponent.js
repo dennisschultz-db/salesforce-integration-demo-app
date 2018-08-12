@@ -5,7 +5,7 @@ var WorkOrder = require('./WOComponent.js');
 var io = require('../assets/socket.io.js');
 var socket = io();
 
-var MixList = module.exports = React.createClass({
+var WOList = module.exports = React.createClass({
 	getInitialState: function () {
 		return {
 			workorders: null
@@ -53,7 +53,7 @@ var MixList = module.exports = React.createClass({
             }.bind(this),
             error: function (xhr, status, err) {
                 if (xhr.status != 401) // Ignore 'unauthorized' responses before logging in
-                    console.error('Failed to retrieve mixes.');
+                    console.error('Failed to retrieve work orders.');
             }.bind(this)
         });
 	},
