@@ -11,14 +11,17 @@ This app runs on Node.js.  As written, it runs on a local Node.js instance but i
 ## Salesforce Org Setup
 1. Create a Connected App in your Salesforce org.  Configure for OAuth.  Callback URL = https://localhost:8080/auth/callback.  Grant at least api, web, and refresh_token scopes.  Make note of the Consumer Key and Consumer Secret.
 2. Create a Validation Rule on the Work Order object.  This will be used to demonstrate that workflows defined for the UI are also applicable and enforced for API access.
-2.1 Error Condition Formula = ISPICKVAL(Status, "Completed") && ISBLANK(Description)
-2.2 Error Message = Completed Work Order must have a Description
++ Error Condition Formula = ISPICKVAL(Status, "Completed") && ISBLANK(Description)
++ Error Message = Completed Work Order must have a Description
 3. Create a Platform Event named WorkOrderUpdated.  Add the following custom fields:
-3.1 Description - Text(255)
-3.2 Status - Text(255)
-3.3 Subject - Text(255)
-3.4 WorkOrderId - Text(18)
-3.5 WorkOrderNumber - Text(255)
++ Description - Text(255)
++ Status - Text(255)
++ Subject - Text(255)
++ WorkOrderId - Text(18)
++ WorkOrderNumber - Text(255)
+4. Create a Process Builder process named *Work Order Update Events* triggered whenever a Work Order is created or changed.
++ Criteria - Whenever IS CHANGED is TRUE for the Subject, Status or Description fields
++ Immediate Action - Create a WorkOrderUpdated platform event.  Assign the corresponding field references from the WorkOrder record to the platform event fields.
 
 ## Installation
 ```sh
@@ -46,6 +49,16 @@ $ npm run build-n-start
 
 Your app should now be running on [localhost:5000](http://localhost:8080/).
 
+## Demonstration
+### Inbound
+1.  From the Node.js app, you should see a list of the most recent 25 Work Orders.  
+1.  Drill into one and make a change to the Status, Subject and/or Description.
+1.  Refresh your view in the Salesforce UI and you should see the changes.
+
+### Outbound
+1.  Activate the *Work Order Update Events* Process Builder process
+1.  Make a change to the Status, Subject and/or Description fields of a Work Order in the Salesforce UI.
+1.  Save your change.  You should immediately see the changes reflected in the Work Order in the Node.js app.
 
 ## Credits
 Original Northern Trail Outfitters Manufacturing app source: https://github.com/ccoenraets/northern-trail-manufacturing
